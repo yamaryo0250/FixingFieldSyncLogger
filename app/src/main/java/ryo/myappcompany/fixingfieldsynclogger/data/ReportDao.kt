@@ -12,7 +12,7 @@ interface ReportDao {
     suspend fun insert(report: Report): Long
 
     @Query("SELECT * FROM reports")
-    suspend fun getAllReports(): Flow<List<Report>>
+    fun getAllReports(): Flow<List<Report>>
 
     @Query("SELECT * FROM reports WHERE isSynced = 0")
     suspend fun getUnSyncedReports(): List<Report>
