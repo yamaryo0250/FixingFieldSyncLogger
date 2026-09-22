@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ReportDao {
     @Insert
-    suspend fun insert(report: Report): Long
+    suspend fun insert(report: Report): Int
 
     @Query("SELECT * FROM reports")
     fun getAllReports(): Flow<List<Report>>
