@@ -1,7 +1,7 @@
 package ryo.myappcompany.fixingfieldsynclogger.ui
 
 /**
- * 作業記録イベントinterface
+ * 作業記録時イベントinterface
  *
  * 現時点では、作業記録保存時におけるDB保存失敗のハンドリング用
  */
