@@ -41,7 +41,7 @@ class FieldSyncLoggerRepositoryImpl @Inject constructor(
         // Workの登録
         val inputData = Data.Builder()
             .putString("REPORT_CONTENT", content)
-            .putInt("REPORT_ID", reportId)
+            .putInt("REPORT_ID", reportId.toInt())
             .build()
 
         val syncWork = OneTimeWorkRequest.Builder(SyncWorker::class.java)
