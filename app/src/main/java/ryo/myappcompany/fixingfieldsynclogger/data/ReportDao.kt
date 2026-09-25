@@ -18,5 +18,5 @@ interface ReportDao {
     suspend fun getUnSyncedReports(): List<Report>
 
     @Update
-    suspend fun update(report: Report?)
+    suspend fun update(report: Report)
 }
