@@ -4,19 +4,22 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequest
-import androidx.work.WorkManager
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import ryo.myappcompany.fixingfieldsynclogger.R
-import ryo.myappcompany.fixingfieldsynclogger.data.AppDatabase
-import ryo.myappcompany.fixingfieldsynclogger.data.Report
-import ryo.myappcompany.fixingfieldsynclogger.worker.SyncWorker
+import ryo.myappcompany.fixingfieldsynclogger.viewmodel.FieldSyncLoggerViewModel
 import java.util.Locale.getDefault
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var db: AppDatabase
+    private val viewModel: FieldSyncLoggerViewModel by viewModels()
+
     private lateinit var etContent: EditText
     private lateinit var btnSave: Button
     private lateinit var tvReports: TextView
@@ -29,49 +32,34 @@ class MainActivity : AppCompatActivity() {
         btnSave = findViewById(R.id.btnSave)
         tvReports = findViewById(R.id.tvReports)
 
-        db = AppDatabase.getInstance(this)
-
-        updateUi()
+        displayUiSetting()
 
         btnSave.setOnClickListener {
             val content = etContent.text.toString()
             if (content.isNotEmpty()) {
-                val newReport = Report()
-                newReport.content = content
-                newReport.isSynced = false
-
-                // DB保存
-                db.reportDao().insert(newReport)
-
-                // 最新のIDを取得するために全件取得して最後のものを取る
-                val allReports = db.reportDao().allReports
-                val savedReport = allReports.last()
-
-                // Workerの実行
-                val inputData = Data.Builder()
-                    .putString("REPORT_CONTENT", savedReport.content)
-                    .putInt("REPORT_ID", savedReport.id)
-                    .build()
-
-                val syncWork = OneTimeWorkRequest.Builder(SyncWorker::class.java)
-                    .setInputData(inputData)
-                    .build()
-
-                WorkManager.getInstance(this).enqueue(syncWork)
+                viewModel.onSaveAndSyncClicked(content)
 
                 etContent.text.clear()
-                updateUi()
+                displayUiSetting()
             }
         }
     }
 
-    private fun updateUi() {
-        val reports = db.reportDao().allReports
-        val sb = StringBuilder()
-        for (report in reports) {
-            val status = if (report.isSynced) "済" else "未"
-            sb.append("[${report.id}] ${report.content.uppercase(getDefault())} - 同期: $status\n")
+    /**
+     * 画面表示用設定
+     */
+    private fun displayUiSetting() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    val sb = StringBuilder()
+                    for (report in state.reports) {
+                        val status = if (report.isSynced) "済" else "未"
+                        sb.append("[${report.id}] ${report.content.uppercase(getDefault())} - 同期: $status\n")
+                    }
+                    tvReports.text = sb.toString()
+                }
+            }
         }
-        tvReports.text = sb.toString()
     }
 }
