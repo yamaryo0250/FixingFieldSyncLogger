@@ -9,19 +9,19 @@
         android:id="@+id/etContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="作業内容を入力してください" />
+        android:hint="@string/msg_enter_the_details_of_the_work" />
 
     <Button
         android:id="@+id/btnSave"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="保存して同期"
+        android:text="@string/msg_sync_and_save"
         android:layout_marginTop="8dp"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="記録一覧:"
+        android:text="@string/msg_list_of_records"
         android:textStyle="bold"
         android:layout_marginTop="16dp"/>
 

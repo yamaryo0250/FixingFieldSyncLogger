@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">FixingFieldSyncLogger</string>
+    <string name="msg_enter_the_details_of_the_work">作業内容を入力してください</string>
+    <string name="msg_sync_and_save">保存して同期</string>
+    <string name="msg_list_of_records">記録一覧:</string>
+
+    <string name="msg_load_error">取得に失敗しました:</string>
 </resources>
