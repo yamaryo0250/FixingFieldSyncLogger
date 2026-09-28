@@ -20,20 +20,10 @@ class SyncWorker @AssistedInject constructor(
     private val syncUnsyncedReportsUseCase: SyncUnsyncedReportsUseCase
 ) : CoroutineWorker(context, workerParams) {
     override suspend fun doWork(): Result {
-        val reportContent = inputData.getString("REPORT_CONTENT")
-        val reportId = inputData.getInt("REPORT_ID", -1)
-
-        if (reportContent == null || reportId == -1) {
-            return Result.failure()
-        }
-
         // サーバーへのアップロード処理（非同期通信をモックで表現）
-        Log.d("SyncWorker", "Uploading: $reportContent")
-
+        // 対象は、この実行開始時点で未同期の作業記録すべて
         return try {
-            syncUnsyncedReportsUseCase(reportContent, reportId)
-
-            Log.d("SyncWorker", "Upload Success for ID: $reportId")
+            syncUnsyncedReportsUseCase()
 
             Result.success()
         } catch (_: IOException) {
@@ -43,6 +33,5 @@ class SyncWorker @AssistedInject constructor(
 
             Result.failure()
         }
-
     }
 }

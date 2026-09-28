@@ -19,6 +19,8 @@ interface FieldSyncLoggerRepository {
 
     /**
      * 作業記録同期
+     *
+     * 処理実行時点で未同期の作業記録をすべて対象にする。
      */
-    suspend fun syncUnsyncedReports(reportContent: String, reportId: Int)
+    suspend fun syncUnsyncedReports()
 }

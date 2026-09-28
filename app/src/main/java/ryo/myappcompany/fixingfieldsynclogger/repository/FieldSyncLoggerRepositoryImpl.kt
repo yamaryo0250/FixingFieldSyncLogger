@@ -2,7 +2,6 @@ package ryo.myappcompany.fixingfieldsynclogger.repository
 
 import android.content.Context
 import android.util.Log
-import androidx.work.Data
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -36,41 +35,42 @@ class FieldSyncLoggerRepositoryImpl @Inject constructor(
         newReport.content = content
         newReport.isSynced = false
         // ローカルDBへのinsert
-        val reportId = reportDao.insert(newReport)
+        reportDao.insert(newReport)
 
-        // Workの登録
-        val inputData = Data.Builder()
-            .putString("REPORT_CONTENT", content)
-            .putInt("REPORT_ID", reportId.toInt())
-            .build()
-
-        val syncWork = OneTimeWorkRequest.Builder(SyncWorker::class.java)
-            .setInputData(inputData)
-            .build()
+        // Workの登録。同期対象は実行時点の未同期レコード全て
+        val syncWork = OneTimeWorkRequest.Builder(SyncWorker::class.java).build()
 
         WorkManager.getInstance(context).enqueue(syncWork)
     }
 
     /**
      * 作業記録同期
+     *
+     * 処理開始時に未同期の作業記録を確定し、そのすべてを同期する
      */
-    override suspend fun syncUnsyncedReports(reportContent: String, reportId: Int) {
+    override suspend fun syncUnsyncedReports() {
         try {
-            Log.d("SyncWorker", "Uploading: $reportContent")
+            val unsyncedReports = reportDao.getUnSyncedReports()
+            if (unsyncedReports.isEmpty()) {
+                return
+            }
+
+            for (report in unsyncedReports) {
+                Log.d("SyncWorker", "Uploading: ${report.content}")
+            }
             // 擬似的なネットワーク遅延
             delay(3000.milliseconds)
 
-            // アップロード成功とみなし、DBを更新
-            val unsyncedReports = reportDao.getUnSyncedReports()
-
+            // アップロード成功とみなし、実行開始時の未同期分をすべて更新
             for (report in unsyncedReports) {
-                if (report.id == reportId) {
-                    report.isSynced = true
-                    reportDao.update(report)
-                }
+                report.isSynced = true
+                reportDao.update(report)
             }
 
-            Log.d("SyncWorker", "Upload Success for ID: $reportId")
+            Log.d(
+                "SyncWorker",
+                "Upload Success for IDs: ${unsyncedReports.joinToString { it.id.toString() }}"
+            )
         } catch (e: Exception) {
             Log.e("SyncWorker", "Upload failed", e)
         }

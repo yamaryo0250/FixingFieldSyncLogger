@@ -9,7 +9,7 @@ import javax.inject.Inject
 class SyncUnsyncedReportsUseCase @Inject constructor(
     private val fieldSyncLoggerRepository: FieldSyncLoggerRepository
 ) {
-    suspend operator fun invoke(reportContent: String, reportId: Int) {
-        fieldSyncLoggerRepository.syncUnsyncedReports(reportContent, reportId)
+    suspend operator fun invoke() {
+        fieldSyncLoggerRepository.syncUnsyncedReports()
     }
 }
