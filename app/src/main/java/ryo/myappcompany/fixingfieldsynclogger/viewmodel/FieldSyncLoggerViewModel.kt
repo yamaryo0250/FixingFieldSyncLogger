@@ -78,9 +78,17 @@ class FieldSyncLoggerViewModel @Inject constructor(
     /**
      * クリック時の作業記録保存＆同期
      *
+     * 未入力、または保存中の再クリックは受け付けない
+     *
      * @param content 作業内容
+     * @return 保存を開始した場合は true
      */
-    fun onSaveAndSyncClicked(content: String) {
+    fun onSaveAndSyncClicked(content: String): Boolean {
+        if (_isLoading.value || content.isBlank()) {
+            return false
+        }
+
+        _isLoading.value = true
         viewModelScope.launch {
             try {
                 saveLoggerUseCase(content)
@@ -89,7 +97,10 @@ class FieldSyncLoggerViewModel @Inject constructor(
                 _uiEvent.send(
                     LoggerEvent.SaveFailure(R.string.msg_save_error)
                 )
+            } finally {
+                _isLoading.value = false
             }
         }
+        return true
     }
 }

@@ -7,6 +7,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -35,15 +36,24 @@ class MainActivity : AppCompatActivity() {
 
         displayUiSetting()
 
+        etContent.doOnTextChanged { _, _, _, _ ->
+            updateSaveButtonEnabled(viewModel.isLoading.value)
+        }
+
         btnSave.setOnClickListener {
             val content = etContent.text.toString()
-            if (content.isNotEmpty()) {
-                viewModel.onSaveAndSyncClicked(content)
-
+            if (viewModel.onSaveAndSyncClicked(content)) {
+                btnSave.isEnabled = false
                 etContent.text.clear()
-                displayUiSetting()
             }
         }
+    }
+
+    /**
+     * 未入力、または保存中はボタンを押せないようにする
+     */
+    private fun updateSaveButtonEnabled(isLoading: Boolean) {
+        btnSave.isEnabled = !isLoading && etContent.text.toString().isNotBlank()
     }
 
     /**
@@ -54,6 +64,8 @@ class MainActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.uiState.collect { state ->
+                        updateSaveButtonEnabled(state.isLoading)
+
                         val sb = StringBuilder()
 
                         if (state.errorMessage != null) {
