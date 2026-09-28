@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
                                 val status =
                                     getString(if (report.isSynced) R.string.msg_synced else R.string.msg_unsynced)
                                 sb.append(
-                                    "[${report.id}] ${report.content.uppercase(getDefault())} ${
+                                    "[${report.id}] ${report.content?.uppercase(getDefault())} ${
                                         getString(
                                             R.string.msg_sync
                                         )
