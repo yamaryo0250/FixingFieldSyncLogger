@@ -4,5 +4,8 @@
     <string name="msg_sync_and_save">保存して同期</string>
     <string name="msg_list_of_records">記録一覧:</string>
 
-    <string name="msg_load_error">取得に失敗しました:</string>
+    <string name="msg_sync">- 同期: </string>
+    <string name="msg_synced">済</string>
+    <string name="msg_unsynced">未</string>
+    <string name="msg_load_error">取得に失敗しました</string>
 </resources>

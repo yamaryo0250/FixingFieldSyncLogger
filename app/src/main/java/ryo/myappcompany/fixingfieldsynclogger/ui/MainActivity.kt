@@ -53,9 +53,21 @@ class MainActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     val sb = StringBuilder()
-                    for (report in state.reports) {
-                        val status = if (report.isSynced) "済" else "未"
-                        sb.append("[${report.id}] ${report.content.uppercase(getDefault())} - 同期: $status\n")
+
+                    if (state.errorMessage != null) {
+                        sb.append(getString(state.errorMessage))
+                    } else {
+                        for (report in state.reports) {
+                            val status =
+                                getString(if (report.isSynced) R.string.msg_synced else R.string.msg_unsynced)
+                            sb.append(
+                                "[${report.id}] ${report.content.uppercase(getDefault())} ${
+                                    getString(
+                                        R.string.msg_sync
+                                    )
+                                } $status\n"
+                            )
+                        }
                     }
                     tvReports.text = sb.toString()
                 }

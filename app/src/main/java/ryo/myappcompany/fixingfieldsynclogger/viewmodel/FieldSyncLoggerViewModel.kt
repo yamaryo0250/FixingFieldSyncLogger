@@ -1,5 +1,6 @@
 package ryo.myappcompany.fixingfieldsynclogger.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -8,10 +9,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import ryo.myappcompany.fixingfieldsynclogger.R
 import ryo.myappcompany.fixingfieldsynclogger.data.Report
 import ryo.myappcompany.fixingfieldsynclogger.ui.LoggerEvent
 import ryo.myappcompany.fixingfieldsynclogger.usecase.LoadReportsUseCase
@@ -34,8 +37,21 @@ class FieldSyncLoggerViewModel @Inject constructor(
     // ※公開用
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    // 作業記録取得時エラー
+    private val _hasLoadError = MutableStateFlow(false)
+    // ※公開用
+    val hasLoadError: StateFlow<Boolean> = _hasLoadError
+
     // DBから取得したリスト
     private val reportsState: Flow<List<Report>> = loadReportsUseCase()
+        .catch { e ->
+            Log.e("FieldSyncLoggerViewModel", "Failed to load reports", e)
+
+            _hasLoadError.value = true
+
+            // Flowが終了しないように、空のリストをフォールバックとして流す
+            emit(emptyList())
+        }
 
     // 作業記録時イベント(現時点で、主にDB保存失敗のハンドリング用)
     private val _uiEvent = Channel<LoggerEvent>(Channel.BUFFERED)
@@ -45,11 +61,13 @@ class FieldSyncLoggerViewModel @Inject constructor(
     // DBから取得した「作業記録リスト」と、「フラグ」をセットにして、画面表示用として管理する
     val uiState: StateFlow<MainUiState> = combine(
         reportsState,
-        isLoading
-    ) { state, isLoading ->
+        isLoading,
+        hasLoadError
+    ) { state, isLoading, hasLoadError ->
         MainUiState(
             reports = state,
-            isLoading = isLoading
+            isLoading = isLoading,
+            errorMessage = if (hasLoadError) R.string.msg_load_error else null
         )
     }.stateIn(
         scope = viewModelScope,
