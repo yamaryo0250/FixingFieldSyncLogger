@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
@@ -51,25 +52,37 @@ class MainActivity : AppCompatActivity() {
     private fun displayUiSetting() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    val sb = StringBuilder()
+                launch {
+                    viewModel.uiState.collect { state ->
+                        val sb = StringBuilder()
 
-                    if (state.errorMessage != null) {
-                        sb.append(getString(state.errorMessage))
-                    } else {
-                        for (report in state.reports) {
-                            val status =
-                                getString(if (report.isSynced) R.string.msg_synced else R.string.msg_unsynced)
-                            sb.append(
-                                "[${report.id}] ${report.content.uppercase(getDefault())} ${
-                                    getString(
-                                        R.string.msg_sync
-                                    )
-                                } $status\n"
-                            )
+                        if (state.errorMessage != null) {
+                            sb.append(getString(state.errorMessage))
+                        } else {
+                            for (report in state.reports) {
+                                val status =
+                                    getString(if (report.isSynced) R.string.msg_synced else R.string.msg_unsynced)
+                                sb.append(
+                                    "[${report.id}] ${report.content.uppercase(getDefault())} ${
+                                        getString(
+                                            R.string.msg_sync
+                                        )
+                                    } $status\n"
+                                )
+                            }
                         }
+                        tvReports.text = sb.toString()
                     }
-                    tvReports.text = sb.toString()
+                }
+
+                launch {
+                    viewModel.uiEvent.collect { event ->
+                        Toast.makeText(
+                            this@MainActivity,
+                            getString(event.message),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
         }

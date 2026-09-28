@@ -82,7 +82,14 @@ class FieldSyncLoggerViewModel @Inject constructor(
      */
     fun onSaveAndSyncClicked(content: String) {
         viewModelScope.launch {
-            saveLoggerUseCase(content)
+            try {
+                saveLoggerUseCase(content)
+            } catch (e: Exception) {
+                Log.e("FieldSyncLoggerViewModel", "Save logger failed.", e)
+                _uiEvent.send(
+                    LoggerEvent.SaveFailure(R.string.msg_save_error)
+                )
+            }
         }
     }
 }
