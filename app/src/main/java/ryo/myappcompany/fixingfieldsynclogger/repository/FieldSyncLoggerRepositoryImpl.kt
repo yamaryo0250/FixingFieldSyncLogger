@@ -30,10 +30,11 @@ class FieldSyncLoggerRepositoryImpl @Inject constructor(
      * 作業記録保存
      */
     override suspend fun saveLogger(content: String) {
-        val newReport = Report()
+        val newReport = Report(
+            content = content,
+            isSynced = false
+        )
 
-        newReport.content = content
-        newReport.isSynced = false
         // ローカルDBへのinsert
         reportDao.insert(newReport)
 
@@ -63,8 +64,7 @@ class FieldSyncLoggerRepositoryImpl @Inject constructor(
 
             // アップロード成功とみなし、実行開始時の未同期分をすべて更新
             for (report in unsyncedReports) {
-                report.isSynced = true
-                reportDao.update(report)
+                reportDao.update(report.copy(isSynced = true))
             }
 
             Log.d(

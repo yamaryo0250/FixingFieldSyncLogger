@@ -6,9 +6,9 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "reports")
 data class Report (
     @PrimaryKey(autoGenerate = true)
-    var id: Int = 0,
+    val id: Int = 0,
 
-    var content: String? = null,
+    val content: String? = null,
 
-    var isSynced: Boolean = false
+    val isSynced: Boolean = false
 )
