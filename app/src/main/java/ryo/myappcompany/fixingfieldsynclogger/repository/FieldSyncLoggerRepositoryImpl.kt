@@ -50,29 +50,25 @@ class FieldSyncLoggerRepositoryImpl @Inject constructor(
      * 処理開始時に未同期の作業記録を確定し、そのすべてを同期する
      */
     override suspend fun syncUnsyncedReports() {
-        try {
-            val unsyncedReports = reportDao.getUnSyncedReports()
-            if (unsyncedReports.isEmpty()) {
-                return
-            }
-
-            for (report in unsyncedReports) {
-                Log.d("SyncWorker", "Uploading: ${report.content}")
-            }
-            // 擬似的なネットワーク遅延
-            delay(3000.milliseconds)
-
-            // アップロード成功とみなし、実行開始時の未同期分をすべて更新
-            for (report in unsyncedReports) {
-                reportDao.update(report.copy(isSynced = true))
-            }
-
-            Log.d(
-                "SyncWorker",
-                "Upload Success for IDs: ${unsyncedReports.joinToString { it.id.toString() }}"
-            )
-        } catch (e: Exception) {
-            Log.e("SyncWorker", "Upload failed", e)
+        val unsyncedReports = reportDao.getUnSyncedReports()
+        if (unsyncedReports.isEmpty()) {
+            return
         }
+
+        for (report in unsyncedReports) {
+            Log.d("SyncWorker", "Uploading: ${report.content}")
+        }
+        // 擬似的なネットワーク遅延
+        delay(3000.milliseconds)
+
+        // アップロード成功とみなし、実行開始時の未同期分をすべて更新
+        for (report in unsyncedReports) {
+            reportDao.update(report.copy(isSynced = true))
+        }
+
+        Log.d(
+            "SyncWorker",
+            "Upload Success for IDs: ${unsyncedReports.joinToString { it.id.toString() }}"
+        )
     }
 }
