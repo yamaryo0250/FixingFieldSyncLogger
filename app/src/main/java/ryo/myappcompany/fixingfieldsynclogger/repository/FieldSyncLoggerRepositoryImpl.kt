@@ -2,6 +2,8 @@ package ryo.myappcompany.fixingfieldsynclogger.repository
 
 import android.content.Context
 import android.util.Log
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,8 +40,14 @@ class FieldSyncLoggerRepositoryImpl @Inject constructor(
         // ローカルDBへのinsert
         reportDao.insert(newReport)
 
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
         // Workの登録。同期対象は実行時点の未同期レコード全て
-        val syncWork = OneTimeWorkRequest.Builder(SyncWorker::class.java).build()
+        val syncWork = OneTimeWorkRequest.Builder(SyncWorker::class.java)
+            .setConstraints(constraints)
+            .build()
 
         WorkManager.getInstance(context).enqueue(syncWork)
     }
