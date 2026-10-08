@@ -5,7 +5,7 @@ package ryo.myappcompany.fixingfieldsynclogger.ui
  *
  * 現時点では、作業記録保存時におけるDB保存失敗のハンドリング用
  */
-interface LoggerEvent {
+sealed interface LoggerEvent {
     val message: Int
 
     /**
