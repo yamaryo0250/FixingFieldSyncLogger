@@ -89,11 +89,15 @@ class MainActivity : AppCompatActivity() {
 
                 launch {
                     viewModel.uiEvent.collect { event ->
-                        Toast.makeText(
-                            this@MainActivity,
-                            getString(event.message),
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        when (event) {
+                            is LoggerEvent.SaveFailure -> {
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    getString(event.message),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
                     }
                 }
             }
