@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
         displayUiSetting()
 
         etContent.doOnTextChanged { _, _, _, _ ->
-            updateSaveButtonEnabled(viewModel.isLoading.value)
+            updateSaveButtonEnabled(viewModel.uiState.value.isLoading)
         }
 
         btnSave.setOnClickListener {

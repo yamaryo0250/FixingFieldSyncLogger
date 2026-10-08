@@ -34,13 +34,9 @@ class FieldSyncLoggerViewModel @Inject constructor(
 ) : ViewModel() {
     // 取得中・保存中フラグ
     private val _isLoading = MutableStateFlow(false)
-    // ※公開用
-    val isLoading: StateFlow<Boolean> = _isLoading
 
     // 作業記録取得時エラー
     private val _hasLoadError = MutableStateFlow(false)
-    // ※公開用
-    val hasLoadError: StateFlow<Boolean> = _hasLoadError
 
     // DBから取得したリスト
     private val reportsState: Flow<List<Report>> = loadReportsUseCase()
@@ -61,8 +57,8 @@ class FieldSyncLoggerViewModel @Inject constructor(
     // DBから取得した「作業記録リスト」と、「フラグ」をセットにして、画面表示用として管理する
     val uiState: StateFlow<MainUiState> = combine(
         reportsState,
-        isLoading,
-        hasLoadError
+        _isLoading,
+        _hasLoadError
     ) { state, isLoading, hasLoadError ->
         MainUiState(
             reports = state,
