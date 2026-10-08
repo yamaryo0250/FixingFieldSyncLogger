@@ -1,9 +1,6 @@
 package ryo.myappcompany.fixingfieldsynclogger.ui
 
 import android.os.Bundle
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -14,6 +11,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import ryo.myappcompany.fixingfieldsynclogger.R
+import ryo.myappcompany.fixingfieldsynclogger.databinding.ActivityMainBinding
 import ryo.myappcompany.fixingfieldsynclogger.viewmodel.FieldSyncLoggerViewModel
 import java.util.Locale.getDefault
 
@@ -22,29 +20,24 @@ class MainActivity : AppCompatActivity() {
 
     private val viewModel: FieldSyncLoggerViewModel by viewModels()
 
-    private lateinit var etContent: EditText
-    private lateinit var btnSave: Button
-    private lateinit var tvReports: TextView
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        etContent = findViewById(R.id.etContent)
-        btnSave = findViewById(R.id.btnSave)
-        tvReports = findViewById(R.id.tvReports)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         displayUiSetting()
 
-        etContent.doOnTextChanged { _, _, _, _ ->
+        binding.etContent.doOnTextChanged { _, _, _, _ ->
             updateSaveButtonEnabled(viewModel.uiState.value.isLoading)
         }
 
-        btnSave.setOnClickListener {
-            val content = etContent.text.toString()
+        binding.btnSave.setOnClickListener {
+            val content = binding.etContent.text.toString()
             if (viewModel.onSaveAndSyncClicked(content)) {
-                btnSave.isEnabled = false
-                etContent.text.clear()
+                binding.btnSave.isEnabled = false
+                binding.etContent.text.clear()
             }
         }
     }
@@ -53,7 +46,7 @@ class MainActivity : AppCompatActivity() {
      * 未入力、または保存中はボタンを押せないようにする
      */
     private fun updateSaveButtonEnabled(isLoading: Boolean) {
-        btnSave.isEnabled = !isLoading && etContent.text.toString().isNotBlank()
+        binding.btnSave.isEnabled = !isLoading && binding.etContent.text.toString().isNotBlank()
     }
 
     /**
@@ -83,7 +76,7 @@ class MainActivity : AppCompatActivity() {
                                 )
                             }
                         }
-                        tvReports.text = sb.toString()
+                        binding.tvReports.text = sb.toString()
                     }
                 }
 
