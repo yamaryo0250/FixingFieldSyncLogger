@@ -70,9 +70,8 @@ class FieldSyncLoggerRepositoryImpl @Inject constructor(
         delay(3000.milliseconds)
 
         // アップロード成功とみなし、実行開始時の未同期分をすべて更新
-        for (report in unsyncedReports) {
-            reportDao.update(report.copy(isSynced = true))
-        }
+        val updatedReports = unsyncedReports.map { it.copy(isSynced = true) }
+        reportDao.update(updatedReports)
 
         Log.d(
             "SyncWorker",
