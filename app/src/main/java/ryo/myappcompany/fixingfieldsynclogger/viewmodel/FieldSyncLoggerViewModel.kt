@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -88,6 +89,8 @@ class FieldSyncLoggerViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 saveLoggerUseCase(content)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("FieldSyncLoggerViewModel", "Save logger failed.", e)
                 _uiEvent.send(
