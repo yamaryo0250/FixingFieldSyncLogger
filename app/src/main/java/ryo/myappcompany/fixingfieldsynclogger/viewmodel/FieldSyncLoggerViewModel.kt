@@ -32,7 +32,7 @@ class FieldSyncLoggerViewModel @Inject constructor(
     private val loadReportsUseCase: LoadReportsUseCase,
     private val saveLoggerUseCase: SaveLoggerUseCase,
 ) : ViewModel() {
-    // 取得中・保存中フラグ
+    // 保存中フラグ
     private val _isLoading = MutableStateFlow(false)
 
     // 作業記録取得時エラー
@@ -45,7 +45,7 @@ class FieldSyncLoggerViewModel @Inject constructor(
 
             _hasLoadError.value = true
 
-            // Flowが終了しないように、空のリストをフォールバックとして流す
+            // 空のリストをフォールバックとして流す
             emit(emptyList())
         }
 
