@@ -283,6 +283,170 @@ class FieldSyncLoggerViewModelTest {
         }
     }
 
+    // 以下、同じ購読の2件目に関するテスト
+    @Test
+    fun 保存中でない場合_reportsが2件目に置き換わり_isLoadingはfalseのままであること() =
+        runTest(dispatcher) {
+            val reports: List<Report> = listOf(
+                Report(
+                    id = 1,
+                    content = "TEST",
+                    isSynced = true
+                )
+            )
+
+            val reports2: List<Report> = listOf(
+                Report(
+                    id = 1,
+                    content = "TEST",
+                    isSynced = true
+                ),
+                Report(
+                    id = 2,
+                    content = "TEST_2",
+                    isSynced = false
+                )
+            )
+
+            val secondList = CompletableDeferred<Unit>()
+
+            every { loadReportsUseCase() } returns flow {
+                emit(reports) // 1件目のreports
+                secondList.await() // 一旦止める
+                emit(reports2)  // 2件目のreports
+            }
+
+            // viewModelの初期化
+            viewModel = FieldSyncLoggerViewModel(loadReportsUseCase, saveLoggerUseCase)
+
+            viewModel.uiState.test {
+                // 購読開始
+                awaitItem()  // この時点では、購読開始時点のもの(初期値)が返る
+
+                advanceUntilIdle()
+
+                awaitItem() // この時点でUseCaseの実行結果が反映
+
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = reports,
+                        isLoading = false,
+                        errorMessage = null
+                    ),
+                    viewModel.uiState.value
+                )
+
+                // 「secondList.await()」による中断を解く
+                secondList.complete(Unit)
+
+                advanceUntilIdle() // 取得完了まで進める
+
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = reports2,
+                        isLoading = false,
+                        errorMessage = null
+                    ),
+                    awaitItem()
+                )
+            }
+        }
+
+    @Test
+    fun 保存中の場合_reportsが2件目に置き換わり_isLoadingはtrueのままであること_保存が終了するとfalseになること() =
+        runTest(dispatcher) {
+            val reports: List<Report> = listOf(
+                Report(
+                    id = 1,
+                    content = "TEST",
+                    isSynced = true
+                )
+            )
+
+            val reports2: List<Report> = listOf(
+                Report(
+                    id = 1,
+                    content = "TEST",
+                    isSynced = true
+                ),
+                Report(
+                    id = 2,
+                    content = "TEST_2",
+                    isSynced = false
+                )
+            )
+
+            // 取得処理をスタブ
+            val secondList = CompletableDeferred<Unit>()
+
+            every { loadReportsUseCase() } returns flow {
+                emit(reports) // 1件目のreports
+                secondList.await() // 一旦止める
+                emit(reports2)  // 2件目のreports
+            }
+
+            // 保存処理をスタブ
+            val saveFinished = CompletableDeferred<Unit>()
+
+            coEvery { saveLoggerUseCase("DO TEST") } coAnswers {
+                saveFinished.await()
+            }
+
+            // viewModelの初期化
+            viewModel = FieldSyncLoggerViewModel(loadReportsUseCase, saveLoggerUseCase)
+
+            viewModel.uiState.test {
+                // 購読開始
+                awaitItem()  // この時点では、購読開始時点のもの(初期値)が返る
+
+                viewModel.onSaveAndSyncClicked("DO TEST")
+
+                runCurrent()
+
+                // 保存中になり、isLoadingがtrueになること
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = reports,
+                        isLoading = true,
+                        errorMessage = null
+                    ),
+                    awaitItem()
+                )
+
+                // 2件目を流し込み
+                secondList.complete(Unit)
+
+                advanceUntilIdle()
+
+                // 2件目の取得後も保存処理中は、isLoadingはtrueのままであること
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = reports2,
+                        isLoading = true,
+                        errorMessage = null
+                    ),
+                    awaitItem()
+                )
+
+                // 「saveFinished.await()」による中断を解く
+                saveFinished.complete(Unit)
+
+                advanceUntilIdle() // 保存処理完了まで進める
+
+                // 保存が終了するとfalseになること
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = reports2,
+                        isLoading = false,
+                        errorMessage = null
+                    ),
+                    viewModel.uiState.value
+                )
+
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
     // 以下、いじわる操作に関するテスト
     @Test
     fun 空文字だけの文字列の場合_onSaveAndSyncClickedの戻り値はfalse_UseCaseは呼ばれないこと() =
