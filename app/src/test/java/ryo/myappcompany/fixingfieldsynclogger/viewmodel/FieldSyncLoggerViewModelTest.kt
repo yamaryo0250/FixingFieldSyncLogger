@@ -67,6 +67,8 @@ class FieldSyncLoggerViewModelTest {
         unmockkStatic(Log::class)
     }
 
+    // 以下、基本仕様のテスト観点
+
     @Test
     fun 初期化時_uiStateの初期状態が正しいこと() = runTest(dispatcher) {
         // loadReportsUseCaseが呼ばれた時のモックの振る舞いを定義
@@ -280,4 +282,257 @@ class FieldSyncLoggerViewModelTest {
             )
         }
     }
+
+    // 以下、いじわる操作に関するテスト
+    @Test
+    fun 空文字だけの文字列の場合_onSaveAndSyncClickedの戻り値はfalse_UseCaseは呼ばれないこと() =
+        runTest(dispatcher) {
+            every { loadReportsUseCase() } returns flowOf(emptyList())
+
+            coEvery { saveLoggerUseCase("") } coAnswers {}
+
+            viewModel = FieldSyncLoggerViewModel(loadReportsUseCase, saveLoggerUseCase)
+
+            // viewModelの初期化完了まで進める
+            viewModel.uiState.test {
+                awaitItem()
+
+                advanceUntilIdle()
+
+                // 空文字でonSaveAndSyncClicked()を呼び出し
+                val result = viewModel.onSaveAndSyncClicked("")
+
+                runCurrent()
+
+                // isLoadingがfalseのままであること
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = emptyList(),
+                        isLoading = false,
+                        errorMessage = null
+                    ),
+                    viewModel.uiState.value
+                )
+
+                advanceUntilIdle()
+
+                // onSaveAndSyncClicked()の戻り値がfalseであること
+                Assert.assertFalse(result)
+
+                // UseCaseは呼ばれないこと
+                coVerify(exactly = 0) { saveLoggerUseCase(any()) }
+            }
+        }
+
+    @Test
+    fun 空白だけの文字列の場合_onSaveAndSyncClickedの戻り値はfalse_UseCaseは呼ばれないこと() =
+        runTest(dispatcher) {
+            every { loadReportsUseCase() } returns flowOf(emptyList())
+
+            coEvery { saveLoggerUseCase(" ") } coAnswers {}
+
+            viewModel = FieldSyncLoggerViewModel(loadReportsUseCase, saveLoggerUseCase)
+
+            // viewModelの初期化完了まで進める
+            viewModel.uiState.test {
+                awaitItem()
+
+                advanceUntilIdle()
+
+                // 空白でonSaveAndSyncClicked()を呼び出し
+                val result = viewModel.onSaveAndSyncClicked(" ")
+
+                runCurrent()
+
+                // isLoadingがfalseのままであること
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = emptyList(),
+                        isLoading = false,
+                        errorMessage = null
+                    ),
+                    viewModel.uiState.value
+                )
+
+                advanceUntilIdle()
+
+                // onSaveAndSyncClicked()の戻り値がfalseであること
+                Assert.assertFalse(result)
+
+                // UseCaseは呼ばれないこと
+                coVerify(exactly = 0) { saveLoggerUseCase(any()) }
+            }
+        }
+
+    @Test
+    fun 前後に空白がある非空白の文字列は_その文字列のまま1回渡ること() = runTest(dispatcher) {
+        every { loadReportsUseCase() } returns flowOf(emptyList())
+
+        // 保存処理をスタブ(処理完了まで)
+        val saveFinished = CompletableDeferred<Unit>()
+
+        coEvery { saveLoggerUseCase(" TEST ") } coAnswers {
+            saveFinished.await()
+        }
+
+        viewModel = FieldSyncLoggerViewModel(loadReportsUseCase, saveLoggerUseCase)
+
+        // viewModelの初期化完了まで進める
+        viewModel.uiState.test {
+            awaitItem()
+
+            advanceUntilIdle()
+
+            viewModel.uiEvent.test {
+                // onSaveAndSyncClicked()を実行
+                val result = viewModel.onSaveAndSyncClicked(" TEST ")
+
+                // onSaveAndSyncClicked()開始後、次のsuspendポイントまで進める
+                runCurrent()
+                // (「saveFinished.await()」により、suspendポイント(SaveLoggerUseCase.invoke())で止まる)
+
+                // 保存処理が呼ばれること
+                coVerify(exactly = 1) { saveLoggerUseCase(" TEST ") }
+
+                // 「saveFinished.await()」による中断を解く
+                saveFinished.complete(Unit)
+
+                // 保存処理が完了するまで進める
+                advanceUntilIdle()
+
+                // 完了まで `SaveFailure` が無いこと
+                expectNoEvents()
+
+                // onSaveAndSyncClicked()の戻り値がTrueであること
+                Assert.assertTrue(result)
+
+                cancelAndIgnoreRemainingEvents()
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun 保存が完了する前の2回目のonSaveAndSyncClickedは_戻り値false_UseCaseは1回のままであること() =
+        runTest(dispatcher) {
+            every { loadReportsUseCase() } returns flowOf(emptyList())
+
+            coEvery { saveLoggerUseCase("DO TEST") } coAnswers {
+                kotlinx.coroutines.delay(1000.milliseconds)
+            }
+
+            viewModel = FieldSyncLoggerViewModel(loadReportsUseCase, saveLoggerUseCase)
+
+            // viewModelの初期化完了まで進める
+            viewModel.uiState.test {
+                awaitItem()
+
+                advanceUntilIdle()
+
+                viewModel.uiEvent.test {
+                    // onSaveAndSyncClicked()を実行　※1回目
+                    val result1 = viewModel.onSaveAndSyncClicked("DO TEST")
+                    // onSaveAndSyncClicked()を実行　※2回目
+                    val result2 = viewModel.onSaveAndSyncClicked("DO TEST")
+
+                    // 一通りの処理が完了するまで進める
+                    advanceUntilIdle()
+
+                    // 保存処理が1回のみ呼ばれること
+                    coVerify(exactly = 1) { saveLoggerUseCase("DO TEST") }
+
+                    // 1回目のonSaveAndSyncClicked()呼び出しは、trueが返ること
+                    Assert.assertTrue(result1)
+
+                    // 2回目のonSaveAndSyncClicked()呼び出しは、falseが返ること
+                    Assert.assertFalse(result2)
+
+                    cancelAndIgnoreRemainingEvents()
+                }
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun 保存失敗でisLoadingがfalseに戻った後_同じ内容でもう一度保存を試みると_trueになり_UseCaseが再びその文字列のまま呼ばれること() =
+        runTest(dispatcher) {
+            every { loadReportsUseCase() } returns flowOf(emptyList())
+
+            // 保存処理をスタブ(処理完了まで)
+            coEvery { saveLoggerUseCase("DO TEST") } coAnswers {
+                kotlinx.coroutines.delay(1000.milliseconds)
+                throw IOException("TEST")
+            }
+
+            viewModel = FieldSyncLoggerViewModel(loadReportsUseCase, saveLoggerUseCase)
+
+            // viewModelの初期化完了まで進める
+            viewModel.uiState.test {
+                awaitItem()
+
+                advanceUntilIdle()
+
+                viewModel.uiEvent.test {
+                    // onSaveAndSyncClicked()を実行
+                    val result1 = viewModel.onSaveAndSyncClicked("DO TEST")
+
+                    runCurrent()
+
+                    // 保存処理が完了するまで進める
+                    advanceUntilIdle()
+
+                    Assert.assertEquals(
+                        LoggerEvent.SaveFailure(R.string.msg_save_error),
+                        awaitItem()
+                    )
+
+                    // onSaveAndSyncClicked()の戻り値がTrueであること
+                    Assert.assertTrue(result1)
+                }
+
+                // isLoadingがtrueに切り替わること
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = emptyList(),
+                        isLoading = true,
+                        errorMessage = null
+                    ),
+                    awaitItem()
+                )
+
+                // isLoadingがfalseに切り替わること
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = emptyList(),
+                        isLoading = false,
+                        errorMessage = null
+                    ),
+                    awaitItem()
+                )
+
+                viewModel.uiEvent.test {
+                    // 保存処理をスタブ(処理完了まで)
+                    coEvery { saveLoggerUseCase("DO TEST") } coAnswers {}
+
+                    // onSaveAndSyncClicked()を実行
+                    val result2 = viewModel.onSaveAndSyncClicked("DO TEST")
+
+                    runCurrent()
+
+                    // 保存処理が呼ばれること
+                    coVerify(exactly = 2) { saveLoggerUseCase("DO TEST") }
+
+                    // 保存処理が完了するまで進める
+                    advanceUntilIdle()
+
+                    // 完了まで `SaveFailure` が無いこと
+                    expectNoEvents()
+
+                    Assert.assertTrue(result2)
+
+                    cancelAndIgnoreRemainingEvents()
+                }
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 }
