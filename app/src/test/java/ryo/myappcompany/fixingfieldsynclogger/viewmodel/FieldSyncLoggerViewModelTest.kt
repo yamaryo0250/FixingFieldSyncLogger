@@ -8,6 +8,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -444,6 +445,59 @@ class FieldSyncLoggerViewModelTest {
                 )
 
                 cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    // 以下、キャンセルに関するテスト
+    @Test
+    fun 保存処理がCancellationExceptionでキャンセルされた時_SaveFailureが流れないこと() =
+        runTest(dispatcher) {
+            every { loadReportsUseCase() } returns flowOf(emptyList())
+
+            coEvery { saveLoggerUseCase("DO TEST") } coAnswers {
+                throw CancellationException("TEST")
+            }
+
+            viewModel = FieldSyncLoggerViewModel(loadReportsUseCase, saveLoggerUseCase)
+
+            // viewModelの初期化完了まで進める
+            viewModel.uiState.test {
+                awaitItem()
+
+                advanceUntilIdle()
+
+                viewModel.uiEvent.test {
+                    val result = viewModel.onSaveAndSyncClicked("DO TEST")
+
+                    advanceUntilIdle()
+
+                    Assert.assertTrue(result)
+
+                    // 完了まで `SaveFailure` が無いこと
+                    expectNoEvents()
+
+                    coVerify(exactly = 1) { saveLoggerUseCase("DO TEST") }
+                }
+
+                // 保存中はisLoadingがtrueであること
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = emptyList(),
+                        isLoading = true,
+                        errorMessage = null
+                    ),
+                    awaitItem()
+                )
+
+                // 保存キャンセル後、isLoadingがfalseに戻ること
+                Assert.assertEquals(
+                    MainUiState(
+                        reports = emptyList(),
+                        isLoading = false,
+                        errorMessage = null
+                    ),
+                    awaitItem()
+                )
             }
         }
 
