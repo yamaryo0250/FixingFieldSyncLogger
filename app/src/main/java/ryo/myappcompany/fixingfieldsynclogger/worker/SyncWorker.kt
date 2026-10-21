@@ -7,6 +7,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import ryo.myappcompany.fixingfieldsynclogger.usecase.SyncUnsyncedReportsUseCase
 import java.io.IOException
 
@@ -28,6 +29,8 @@ class SyncWorker @AssistedInject constructor(
             Result.success()
         } catch (_: IOException) {
             Result.retry()
+        } catch (e : CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("SyncWorker", "Upload failed", e)
 
