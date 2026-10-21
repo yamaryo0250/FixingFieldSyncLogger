@@ -1,22 +1,20 @@
 package ryo.myappcompany.fixingfieldsynclogger.repository
 
-import android.content.Context
 import android.util.Log
 import androidx.work.Constraints
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
-import androidx.work.WorkManager
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import ryo.myappcompany.fixingfieldsynclogger.data.Report
 import ryo.myappcompany.fixingfieldsynclogger.data.ReportDao
+import ryo.myappcompany.fixingfieldsynclogger.worker.SyncWorkEnqueuer
 import ryo.myappcompany.fixingfieldsynclogger.worker.SyncWorker
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
 class FieldSyncLoggerRepositoryImpl @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+    private val syncWorkEnqueuer: SyncWorkEnqueuer,
     private val reportDao: ReportDao
 ) : FieldSyncLoggerRepository {
     /**
@@ -49,7 +47,7 @@ class FieldSyncLoggerRepositoryImpl @Inject constructor(
             .setConstraints(constraints)
             .build()
 
-        WorkManager.getInstance(context).enqueue(syncWork)
+        syncWorkEnqueuer.enqueue(syncWork)
     }
 
     /**
@@ -63,8 +61,8 @@ class FieldSyncLoggerRepositoryImpl @Inject constructor(
             return
         }
 
-        for (report in unsyncedReports) {
-            Log.d("SyncWorker", "Uploading: ${report.content}")
+        for ((_, content) in unsyncedReports) {
+            Log.d("SyncWorker", "Uploading: $content")
         }
         // 擬似的なネットワーク遅延
         delay(3000.milliseconds)

@@ -6,6 +6,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ryo.myappcompany.fixingfieldsynclogger.repository.FieldSyncLoggerRepository
 import ryo.myappcompany.fixingfieldsynclogger.repository.FieldSyncLoggerRepositoryImpl
+import ryo.myappcompany.fixingfieldsynclogger.worker.SyncWorkEnqueuer
+import ryo.myappcompany.fixingfieldsynclogger.worker.WorkManagerSyncWorkEnqueuer
 import javax.inject.Singleton
 
 @Module
@@ -17,4 +19,10 @@ abstract class FieldSyncLoggerModule {
     abstract fun bindFieldSyncLoggerRepository(
         fieldSyncLoggerRepositoryImpl: FieldSyncLoggerRepositoryImpl
     ): FieldSyncLoggerRepository
+
+    @Singleton
+    @Binds
+    abstract fun bindSyncWorkEnqueuer(
+        impl: WorkManagerSyncWorkEnqueuer
+    ): SyncWorkEnqueuer
 }
