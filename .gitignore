@@ -32,3 +32,9 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# アプリのビルドに不要な、開発支援ツールと引き継ぎ資料
+.cursor/
+.claude/
+CLAUDE.md
+docs/
