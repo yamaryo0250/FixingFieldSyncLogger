@@ -126,21 +126,23 @@ class FieldSyncLoggerRepositoryImplTest {
         // ReportDao.insert()へ渡すReportが引数のcontent、かつisSynced = falseであること
         val testNewReport = Report(content = "TEST", isSynced = false)
 
+        val exception = Exception("TEST")
+
         coEvery { reportDao.insert(any()) } coAnswers {
-            throw Exception("TEST")
+            throw exception
         }
 
         // Exceptionを再スローしていること
-        assertFailsWith<Exception> {
+        val result = assertFailsWith<Exception> {
             repository.saveLogger("TEST")
         }
+
+        // Exceptionのインスタンスが同一であること
+        Assert.assertSame(exception, result)
 
         // ReportDao.insert()へ渡すReportが引数のcontent、かつisSynced = falseであること
         // ReportDao.insert()を1回実行していること
         coVerify(exactly = 1) {reportDao.insert(testNewReport)}
-
-        // ReportDao.insert()を1回実行していること
-        coVerify(exactly = 1) { reportDao.insert(testNewReport) }
 
         // SyncWorkEnqueuer.enqueue()を実行していないこと
         verify(exactly = 0) { syncWorkEnqueuer.enqueue(any()) }
@@ -151,12 +153,17 @@ class FieldSyncLoggerRepositoryImplTest {
         val testNewReport = Report(content = "TEST", isSynced = false)
 
         coEvery { reportDao.insert(any()) } coAnswers { 1.toLong() }
-        every { syncWorkEnqueuer.enqueue(any()) } throws Exception("TEST")
+
+        val exception = Exception("TEST")
+        every { syncWorkEnqueuer.enqueue(any()) } throws exception
 
         // Exceptionを再スローしていること
-        assertFailsWith<Exception> {
+        val result = assertFailsWith<Exception> {
             repository.saveLogger("TEST")
         }
+
+        // Exceptionのインスタンスが同一であること
+        Assert.assertSame(exception, result)
 
         // ReportDao.insert()へ渡すReportが引数のcontent、かつisSynced = falseであること
         // ReportDao.insert()を1回実行していること
@@ -233,8 +240,11 @@ class FieldSyncLoggerRepositoryImplTest {
             // ReportDao.getUnSyncedReports()が1件以上のリストを返すこと
             coEvery { reportDao.getUnSyncedReports() } returns unsyncedReports
 
+            // 正常に戻ったかの検証フラグ
+            var isReturnNormalFlag = false
             val deferred = async {
                 repository.syncUnsyncedReports()
+                isReturnNormalFlag = true
             }
 
             // delayによる遅延シミュレートまで進める
@@ -247,6 +257,12 @@ class FieldSyncLoggerRepositoryImplTest {
             assertFailsWith<CancellationException> {
                 deferred.await()
             }
+            
+            // 正常に戻ったかの検証
+            Assert.assertFalse(
+                "呼び出しが CancellationException で終わること",
+                isReturnNormalFlag
+            )
 
             // ReportDao.getUnSyncedReports()を1回実行していること
             coVerify(exactly = 1) { reportDao.getUnSyncedReports() }
@@ -257,10 +273,15 @@ class FieldSyncLoggerRepositoryImplTest {
 
     @Test
     fun 作業記録同期_異常系_未同期の作業記録取得でExceptionが発生した場合_そのまま再スローすること() = runTest {
-        coEvery { reportDao.getUnSyncedReports() } throws Exception("TEST")
+        val exception = Exception("TEST")
+
+        coEvery { reportDao.getUnSyncedReports() } throws exception
 
         // Exceptionを再スローしていること
-        assertFailsWith<Exception> { repository.syncUnsyncedReports() }
+        val result = assertFailsWith<Exception> { repository.syncUnsyncedReports() }
+
+        // Exceptionのインスタンスが同一であること
+        Assert.assertSame(exception, result)
 
         // ReportDao.getUnSyncedReports()を実行していること
         coVerify(exactly = 1) { reportDao.getUnSyncedReports() }
@@ -286,10 +307,15 @@ class FieldSyncLoggerRepositoryImplTest {
 
         // ReportDao.getUnSyncedReports()が1件以上のリストを返すこと
         coEvery { reportDao.getUnSyncedReports() } returns unsyncedReports
-        coEvery { reportDao.update(any()) } throws Exception("TEST")
+
+        val exception = Exception("TEST")
+        coEvery { reportDao.update(any()) } throws exception
 
         // Exceptionを再スローしていること
-        assertFailsWith<Exception> { repository.syncUnsyncedReports() }
+        val result = assertFailsWith<Exception> { repository.syncUnsyncedReports() }
+
+        // Exceptionのインスタンスが同一であること
+        Assert.assertSame(exception, result)
 
         // ReportDao.getUnSyncedReports()を実行していること
         coVerify(exactly = 1) { reportDao.getUnSyncedReports() }
