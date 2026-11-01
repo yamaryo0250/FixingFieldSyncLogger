@@ -62,7 +62,7 @@ class SyncWorkerTest {
     }
 
     @Test
-    fun 異常系_IOEXCEPTIONが発生した場合_retryが返ること() = runTest {
+    fun 異常系_IOExceptionが発生した場合_retryが返ること() = runTest {
         coEvery { syncUnsyncedReportsUseCase() } throws IOException("TEST")
 
         val result = syncWorker.doWork()
@@ -73,12 +73,14 @@ class SyncWorkerTest {
 
     @Test
     fun 異常系_CancellationExceptionが発生した場合_再スローされること() = runTest {
-        coEvery { syncUnsyncedReportsUseCase() } throws CancellationException("TEST")
+        val cancellationException = CancellationException("TEST")
+        coEvery { syncUnsyncedReportsUseCase() } throws cancellationException
 
         // 再スローされること
-        assertFailsWith<CancellationException> {
+        val result = assertFailsWith<CancellationException> {
             syncWorker.doWork()
         }
+        Assert.assertSame(cancellationException, result)
 
         coVerify(exactly = 1) { syncUnsyncedReportsUseCase() }
     }
